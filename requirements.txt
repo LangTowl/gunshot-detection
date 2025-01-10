@@ -1,4 +1,4 @@
-numpy~=2.0.2
+numpy~=2.0.0
 sounddevice~=0.5.1
 librosa~=0.10.2.post1
 soundfile~=0.12.1
