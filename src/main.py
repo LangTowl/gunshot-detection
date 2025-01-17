@@ -1,24 +1,26 @@
 import threading
-from audio_input import audio_input_pipeline, audio_queue
-from utils import volume_animation_bar
+from audio_input import volume_queue, spectrogram_queue, samples_sniffed, record_audio
+from volume_bar_renderer import volume_animation_bar
+from model_utils import prediction, model_prediction
 
-def main():
-    # Stop event used to kill threads
+if __name__ == "__main__":
+    # Stop event to kill executions across threads
     stop_event = threading.Event()
 
     # Initiate thread for volume bar rendering
-    animation_thread = threading.Thread(target = volume_animation_bar, args = (stop_event, audio_queue))
+    animation_thread = threading.Thread(target = volume_animation_bar, args = (stop_event, volume_queue, prediction))
     animation_thread.start()
 
+    # Initialize thread for spectrogram generation and model predictions
+    prediction_thread = threading.Thread(target = model_prediction, args = (stop_event, spectrogram_queue))
+    prediction_thread.start()
+
     try:
-        print("Initiating audio input pipeline...")
-        audio_input_pipeline(stop_event, callback = None) # TODO: Implement callback function in audio_input
+        print("Initializing audio input...\n")
+        record_audio(stop_event)
     except KeyboardInterrupt:
-        print("\nStopping audio input pipeline...")
+        print("\n\nStopping audio input pipeline...\n")
         stop_event.set()
     finally:
-        animation_thread.join()      # Wait for thread to finish task, then terminate
+        animation_thread.join()  # Wait for thread to finish task, then terminate
         print("Exiting program...")
-
-if __name__ == "__main__":
-    main()

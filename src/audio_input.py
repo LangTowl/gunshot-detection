@@ -1,25 +1,40 @@
-import sounddevice as sd
 import numpy as np
 from queue import Queue
+import sounddevice as sd
+from multiprocessing import Value
 
-# Generate thread-safe queue for use across threads: volume bar & data processing
-audio_queue = Queue()
+volume_queue = Queue()          # Queue is accessed by volume rendered
+spectrogram_queue = Queue()     # Queue is used to generate spectrogram
+samples_sniffed = Value('i', 0) # Thread safe integer
 
-def audio_input_pipeline(stop_event, callback = None, chunk_duration = 0.1):
-    # System parameters
-    samplerate = 16000
-    channels = 1
+def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channels = 1):
 
-    # Initiate audio input stream
-    with sd.InputStream(samplerate = samplerate, channels = channels, dtype = 'float32') as stream:
-        # While thread is active...
+    # Determine sample
+    num_samples = int(sample_rate * chunk_duration)
+
+    # Buffer to accumulate 2-second audio
+    segment_duration = 2.0
+    number_of_segments = int(segment_duration / chunk_duration)
+    audio_buffer = []
+
+    # Initialize audio stream
+    with sd.InputStream(samplerate = sample_rate, channels = channels, dtype = 'float32') as stream:
+
+        # While thread is active
         while not stop_event.is_set():
-            num_samples = int(samplerate * chunk_duration)  # Determine number of samples to fetch
-            audio_chunk, _ = stream.read(num_samples)       # Fetch audio chunk
-            rms = np.sqrt(np.mean(np.square(audio_chunk)))  # Compute RMS:
-            volume_level = min(1.0, rms * 10)               # Normalize to RMS for display
+            # Record audio segment based on computed sample duration
+            audio_segment, _ = stream.read(num_samples)
 
-            audio_queue.put(volume_level)  # Pass RMS (volume) to volume bar
+            # Compute volume and pass to volume queue
+            rms = np.sqrt(np.mean(np.square(audio_segment)))
+            volume_level = min(1.0, rms * 10)
+            volume_queue.put(volume_level)
 
-            if callback:
-                callback(audio_chunk)  # TODO: Implement preprocessing subroutine
+            # Append audio buffer to spectrogram queue once it accumulates 2 seconds of audio
+            audio_buffer.append(audio_segment)
+            if len(audio_buffer) == number_of_segments:
+                full_segment = np.concatenate(audio_buffer, axis = 0)
+                spectrogram_queue.put(full_segment)
+                audio_buffer.clear()
+
+                samples_sniffed.value += 1
