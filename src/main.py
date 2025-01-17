@@ -1,14 +1,14 @@
 import threading
-from audio_input import volume_queue, spectrogram_queue, samples_sniffed, record_audio
+from audio_input import volume_queue, spectrogram_queue, record_audio
 from volume_bar_renderer import volume_animation_bar
-from model_utils import prediction, model_prediction
+from model_utils import prediction, samples_sniffed, model_prediction
 
 if __name__ == "__main__":
     # Stop event to kill executions across threads
     stop_event = threading.Event()
 
     # Initiate thread for volume bar rendering
-    animation_thread = threading.Thread(target = volume_animation_bar, args = (stop_event, volume_queue, prediction))
+    animation_thread = threading.Thread(target = volume_animation_bar, args = (stop_event, volume_queue, prediction, samples_sniffed))
     animation_thread.start()
 
     # Initialize thread for spectrogram generation and model predictions
@@ -22,5 +22,6 @@ if __name__ == "__main__":
         print("\n\nStopping audio input pipeline...\n")
         stop_event.set()
     finally:
-        animation_thread.join()  # Wait for thread to finish task, then terminate
+        # animation_thread.join()
+        prediction_thread.join()
         print("Exiting program...")

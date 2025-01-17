@@ -1,13 +1,14 @@
-import os
+import io
 from PIL import Image
 import numpy as np
 from multiprocessing import Value
 import librosa
 from keras import models
-from keras import preprocessing
+import matplotlib.pyplot as plt
 
 # Variables to be shared across threads
 prediction = Value('d', 0)
+samples_sniffed = Value('i', 0)
 gunshots_detected = Value('i', 0)
 
 # Spectrogram generation constants
@@ -20,32 +21,54 @@ SEGMENT_HOP = SEGMENT_LENGTH // 2
 model_path = 'models/trained_model_1_Jan_12_2025.h5'
 
 def generate_spectrogram(audio_segment, model_input_dims = (128, 128)):
+    if audio_segment.ndim > 1:
+        audio_segment = audio_segment.squeeze()
+
     # Compute the STFT
     stft = librosa.stft(audio_segment, n_fft = FRAME_SIZE, hop_length = HOP_SIZE)
     stft_magnitude = np.abs(stft) ** 2
 
     # Convert to log-amplitude scale
-    stft_db = librosa.amplitude_to_db(stft_magnitude, ref=np.max)
+    stft_db = librosa.amplitude_to_db(stft_magnitude)
 
-    # Normalize the spectrogram
-    stft_db_normalized = (stft_db - stft_db.min()) / (stft_db.max() - stft_db.min())
+    # Create the spectrogram plot
+    plt.figure(figsize=(10, 4))
+    plt.axis('off')
+    librosa.display.specshow(
+        stft_db,
+        sr=SAMPLE_RATE,
+        hop_length=HOP_SIZE,
+        x_axis='time',
+        y_axis='log',
+        cmap='magma'
+    )
 
-    # Convert to a PIL image for resizing and RGB conversion
-    stft_image = Image.fromarray(np.uint8(stft_db_normalized * 255), mode="L")
-    stft_image = stft_image.resize(model_input_dims).convert("RGB")
+    # Save the figure into a memory buffer
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0, transparent=True)
+    buf.seek(0)
 
-    # Convert to numpy array and normalize to [0, 1]
-    spectrogram_array = preprocessing.image.img_to_array(stft_image) / 255.0
+    # Load the image from the buffer and convert it to RGB
+    spectrogram_image = Image.open(buf).convert("RGB")
+    spectrogram_image = spectrogram_image.resize((128, 128))  # Resize to (128, 128)
 
-    return spectrogram_array
+    # Convert to numpy array and normalize the pixel values
+    spectrogram_image = np.array(spectrogram_image) / 255.0
+
+    # Close the plot to release memory
+    plt.close()
+
+    return spectrogram_image
 
 def model_prediction(stop_event, spectrogram_queue):
     model = models.load_model(model_path, compile = False)
 
-    while not spectrogram_queue.empty():
-        audio_segment = spectrogram_queue.get()
+    while not stop_event.is_set():
+        while not spectrogram_queue.empty():
+            audio_segment = spectrogram_queue.get()
 
-        spectrogram = generate_spectrogram(audio_segment)
-        processed_spectrogram = np.array(spectrogram)
+            spectrogram = generate_spectrogram(audio_segment)
+            processed_spectrogram = np.expand_dims(spectrogram, axis = 0)
 
-        prediction = model.predict(processed_spectrogram)
+            prediction = model.predict(processed_spectrogram, verbose=0)[0]
+            samples_sniffed.value += 1

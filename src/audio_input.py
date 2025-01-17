@@ -5,7 +5,6 @@ from multiprocessing import Value
 
 volume_queue = Queue()          # Queue is accessed by volume rendered
 spectrogram_queue = Queue()     # Queue is used to generate spectrogram
-samples_sniffed = Value('i', 0) # Thread safe integer
 
 def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channels = 1):
 
@@ -33,8 +32,6 @@ def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channel
             # Append audio buffer to spectrogram queue once it accumulates 2 seconds of audio
             audio_buffer.append(audio_segment)
             if len(audio_buffer) == number_of_segments:
-                full_segment = np.concatenate(audio_buffer, axis = 0)
+                full_segment = np.concatenate(audio_buffer[:number_of_segments], axis=0)
                 spectrogram_queue.put(full_segment)
-                audio_buffer.clear()
-
-                samples_sniffed.value += 1
+                audio_buffer = audio_buffer[number_of_segments:]
