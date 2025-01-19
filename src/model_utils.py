@@ -21,6 +21,7 @@ SEGMENT_HOP = SEGMENT_LENGTH // 2
 model_path = 'models/trained_model_1_Jan_12_2025.h5'
 
 def generate_spectrogram(audio_segment, model_input_dims = (128, 128)):
+    # Compress channels
     if audio_segment.ndim > 1:
         audio_segment = audio_segment.squeeze()
 
@@ -58,7 +59,7 @@ def generate_spectrogram(audio_segment, model_input_dims = (128, 128)):
     # Close the plot to release memory
     plt.close()
 
-    return spectrogram_image
+    return np.expand_dims(spectrogram_image, axis = 0)
 
 def model_prediction(stop_event, spectrogram_queue):
     model = models.load_model(model_path, compile = False)
@@ -70,5 +71,6 @@ def model_prediction(stop_event, spectrogram_queue):
             spectrogram = generate_spectrogram(audio_segment)
             processed_spectrogram = np.expand_dims(spectrogram, axis = 0)
 
-            prediction = model.predict(processed_spectrogram, verbose=0)[0]
+            # print(f"Confidence: {model.predict(processed_spectrogram, verbose=0)[0]} Samples Sniffed: {samples_sniffed.value}")
+
             samples_sniffed.value += 1
