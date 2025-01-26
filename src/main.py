@@ -8,8 +8,8 @@ if __name__ == "__main__":
     stop_event = threading.Event()
 
     # Initiate thread for volume bar rendering
-    animation_thread = threading.Thread(target = volume_animation_bar, args = (stop_event, volume_queue, prediction, samples_sniffed))
-    animation_thread.start()
+    # animation_thread = threading.Thread(target = volume_animation_bar, args = (stop_event, volume_queue, prediction, samples_sniffed))
+    # animation_thread.start()
 
     # Initialize thread for spectrogram generation and model predictions
     prediction_thread = threading.Thread(target = model_prediction, args = (stop_event, spectrogram_queue))
