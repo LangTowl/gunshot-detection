@@ -1,19 +1,20 @@
 import os
-import numpy as np
-from multiprocessing import Value
 import librosa
+import numpy as np
 from keras import models
-from skimage.transform import resize
+from datetime import datetime
+from multiprocessing import Value
 from scipy.io.wavfile import write
+from skimage.transform import resize
 
 # Variables to be shared across threads
-prediction = Value('d', 0)
+prediction_decimal = Value('d', 0.0)
 samples_sniffed = Value('i', 0)
 gunshots_detected = Value('i', 0)
 
 # Used directories
-model_path = 'models/trained_model_2_Jan_26_2025.h5'
 detections_directory = 'data/detections'
+model_path = 'models/trained_model_2_Jan_26_2025.h5'
 
 # Spectrogram generation constants
 SAMPLE_RATE = 16000
@@ -57,12 +58,17 @@ def generate_spectrogram_array(audio_data):
 
 
 def model_prediction(stop_event, spectrogram_queue):
-    global prediction
+    global prediction_decimal
+    global gunshots_detected
 
+    # Load trained model
     model = models.load_model(model_path, compile=False)
 
+    # Code to run while thread is alive
     while not stop_event.is_set():
+        # Only execute when queue is !empty
         while not spectrogram_queue.empty():
+            # Load next segment
             audio_segment = spectrogram_queue.get()
 
             # Generate spectrogram
@@ -74,14 +80,18 @@ def model_prediction(stop_event, spectrogram_queue):
 
             # Make prediction
             prediction = model.predict(spectrogram_batch, verbose=0)
+            prediction_decimal.value = prediction[0][0]
 
-            if prediction[0][0] > 0.5:
-                print(f"Gunshot detected -> {prediction[0][0]}")
+            # Gunshot if confidence is > ##%
+            if prediction_decimal.value > 0.95:
 
-                filename = os.path.join(detections_directory, f"gunshot_{samples_sniffed.value}.wav")
+                gunshots_detected.value += 1
+
+                # Save file to disk if gunshot is detected
+                now = datetime.now()
+                formatted_date_time = now.strftime("%m_%d_%H_%M")
+                filename = os.path.join(detections_directory, f"gs_{samples_sniffed.value}_conf_{prediction_decimal.value:.3f}_date_{formatted_date_time}.wav")
                 audio_segment_int16 = (audio_segment * 32767).astype(np.int16)
                 write(filename, SAMPLE_RATE, audio_segment_int16)
-            else:
-                print(f"No Gunshot detected -> {prediction[0][0]}")
 
             samples_sniffed.value += 1

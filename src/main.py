@@ -1,15 +1,15 @@
 import threading
 from audio_input import volume_queue, spectrogram_queue, record_audio
 from volume_bar_renderer import volume_animation_bar
-from model_utils import prediction, samples_sniffed, model_prediction
+from model_utils import prediction_decimal, samples_sniffed, model_prediction, gunshots_detected
 
 if __name__ == "__main__":
     # Stop event to kill executions across threads
     stop_event = threading.Event()
 
     # Initiate thread for volume bar rendering
-    # animation_thread = threading.Thread(target = volume_animation_bar, args = (stop_event, volume_queue, prediction, samples_sniffed))
-    # animation_thread.start()
+    animation_thread = threading.Thread(target = volume_animation_bar, args = (stop_event, volume_queue, prediction_decimal, samples_sniffed, gunshots_detected))
+    animation_thread.start()
 
     # Initialize thread for spectrogram generation and model predictions
     prediction_thread = threading.Thread(target = model_prediction, args = (stop_event, spectrogram_queue))
