@@ -22,6 +22,6 @@ if __name__ == "__main__":
         print("\n\nStopping audio input pipeline...\n")
         stop_event.set()
     finally:
-        # animation_thread.join()
+        animation_thread.join()
         prediction_thread.join()
         print("Exiting program...")

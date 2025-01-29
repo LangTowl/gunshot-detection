@@ -14,7 +14,7 @@ gunshots_detected = Value('i', 0)
 
 # Used directories
 detections_directory = 'data/detections'
-model_path = 'models/trained_model_2_Jan_26_2025.h5'
+model_path = 'models/trained_model_3_Jan_29_2025.h5'
 
 # Spectrogram generation constants
 SAMPLE_RATE = 16000
