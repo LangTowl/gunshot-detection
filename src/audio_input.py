@@ -11,10 +11,19 @@ def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channel
     # Determine sample
     num_samples = int(sample_rate * chunk_duration)
 
-    # Buffer to accumulate 2-second audio
+    # Buffer setup
     segment_duration = 2.0
     number_of_segments = int(segment_duration / chunk_duration)
-    audio_buffer = []
+
+    # Audio buffers
+    audio_buffer_1 = []
+    audio_buffer_2 = []
+
+    # Setup offset buffer
+    silent_chunks = int(sample_rate * 1.0 / num_samples)
+    silent_audio = np.zeros((num_samples, channels), dtype=np.float32)
+    audio_buffer_1 = [silent_audio] * silent_chunks
+
 
     # Initialize audio stream
     with sd.InputStream(samplerate = sample_rate, channels = channels, dtype = 'float32') as stream:
@@ -30,8 +39,15 @@ def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channel
             volume_queue.put(volume_level)
 
             # Append audio buffer to spectrogram queue once it accumulates 2 seconds of audio
-            audio_buffer.append(audio_segment)
-            if len(audio_buffer) == number_of_segments:
-                full_segment = np.concatenate(audio_buffer[:number_of_segments], axis=0)
-                spectrogram_queue.put(full_segment)
-                audio_buffer = audio_buffer[number_of_segments:]
+            audio_buffer_1.append(audio_segment)
+            if len(audio_buffer_1) == number_of_segments:
+                full_segment_1 = np.concatenate(audio_buffer_1[:number_of_segments], axis=0)
+                spectrogram_queue.put(full_segment_1)
+                audio_buffer_1 = audio_buffer_1[number_of_segments:]
+
+            # Append audio buffer to spectrogram queue once it accumulates 2 seconds of audio
+            audio_buffer_2.append(audio_segment)
+            if len(audio_buffer_2) == number_of_segments:
+                full_segment_1 = np.concatenate(audio_buffer_2[:number_of_segments], axis=0)
+                spectrogram_queue.put(full_segment_1)
+                audio_buffer_2 = audio_buffer_2[number_of_segments:]
