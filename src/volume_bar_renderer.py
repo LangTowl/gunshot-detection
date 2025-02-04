@@ -9,7 +9,7 @@ def volume_animation_bar(stop_event, volume_queue, prediction, samples_sniffed, 
             filled_length = int(volume_level * max_length)                  # Determine number of bars to fill bar
             bar = "█" * filled_length + " " * (max_length - filled_length)  # Determines number of █ and " " to fill bar
             percentage = f"{int(volume_level * 100):3d}%"                   # Format percentage to always be 3 digits wide
-            sys.stdout.write(f"\r|{bar}| {percentage} [Prediction: {prediction.value:.5f}] [Samples Sniffed: {samples_sniffed.value:3d}] [Gunshots Detected: {gunshots_detected.value}]")
+            sys.stdout.write(f"\r|{bar}| {percentage} [Prediction: {prediction.value:.5f}] [Samples Sniffed: {samples_sniffed.value:5d}] [Gunshots Detected: {gunshots_detected.value}]")
             sys.stdout.flush()  # Flush screen
         except Empty:
             pass
