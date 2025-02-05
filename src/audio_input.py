@@ -48,6 +48,6 @@ def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channel
             # Append audio buffer to spectrogram queue once it accumulates 2 seconds of audio
             audio_buffer_2.append(audio_segment)
             if len(audio_buffer_2) == number_of_segments:
-                full_segment_1 = np.concatenate(audio_buffer_2[:number_of_segments], axis=0)
-                spectrogram_queue.put(full_segment_1)
+                full_segment_2 = np.concatenate(audio_buffer_2[:number_of_segments], axis=0)
+                spectrogram_queue.put(full_segment_2)
                 audio_buffer_2 = audio_buffer_2[number_of_segments:]
