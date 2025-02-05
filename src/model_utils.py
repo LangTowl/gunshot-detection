@@ -64,6 +64,9 @@ def model_prediction(stop_event, spectrogram_queue):
     # Load trained model
     model = models.load_model(model_path, compile=False)
 
+    # Time of last recorded gunshot
+    time_of_last_gunshot = datetime.now()
+
     # Code to run while thread is alive
     while not stop_event.is_set():
         # Only execute when queue is !empty
@@ -84,14 +87,19 @@ def model_prediction(stop_event, spectrogram_queue):
 
             # Gunshot if confidence is > ##%
             if prediction_decimal.value > 0.95:
-
-                gunshots_detected.value += 1
-
-                # Save file to disk if gunshot is detected
+                # Determine time since last detection
                 now = datetime.now()
-                formatted_date_time = now.strftime("%m_%d_%H_%M")
-                filename = os.path.join(detections_directory, f"gs_{samples_sniffed.value}_conf_{prediction_decimal.value:.3f}_date_{formatted_date_time}.wav")
-                audio_segment_int16 = (audio_segment * 32767).astype(np.int16)
-                write(filename, SAMPLE_RATE, audio_segment_int16)
+                time_delta = (now - time_of_last_gunshot).total_seconds()
+
+                if time_delta > 1.0:
+
+                    gunshots_detected.value += 1
+                    time_of_last_gunshot = now
+
+                    # Save file to disk if gunshot is detected
+                    formatted_date_time = now.strftime("%m_%d_%H_%M")
+                    filename = os.path.join(detections_directory, f"gs_{samples_sniffed.value}_conf_{prediction_decimal.value:.3f}_date_{formatted_date_time}.wav")
+                    audio_segment_int16 = (audio_segment * 32767).astype(np.int16)
+                    write(filename, SAMPLE_RATE, audio_segment_int16)
 
             samples_sniffed.value += 1
