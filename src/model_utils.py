@@ -1,11 +1,13 @@
 import os
 import librosa
 import numpy as np
+from PIL import Image
+import librosa.display
 from keras import models
 from datetime import datetime
+import matplotlib.pyplot as plt
 from multiprocessing import Value
 from scipy.io.wavfile import write
-from skimage.transform import resize
 
 # Variables to be shared across threads
 prediction_decimal = Value('d', 0.0)
@@ -16,45 +18,73 @@ gunshots_detected = Value('i', 0)
 detections_directory = 'data/detections'
 model_path = 'models/trained_model_3_Jan_29_2025.h5'
 
-# Spectrogram generation constants
-SAMPLE_RATE = 16000
-FRAME_SIZE = 2048
-HOP_SIZE = 128
-TARGET_SHAPE = (128, 128)
 
-def generate_spectrogram_array(audio_data):
-    # Compress channels if necessary
-    if audio_data.ndim > 1:
-        audio_data = audio_data.squeeze()
+def mel_spectrogram_generator(data, sr = 16000, duration = 2.0, n_fft = 2560, hop_length = 128, n_mels = 512, fmin = 4000, fmax = 8000, power = 2.0, figsize = (5,5), target_shape = (256, 256), show = False, save = False):
+    # Compute spectrogram
+    spectrogram = librosa.feature.melspectrogram(
+        y = data,
+        sr = sr,
+        n_fft = n_fft,
+        hop_length = hop_length,
+        n_mels = n_mels,
+        fmin = fmin,
+        fmax = fmax,
+        power = power
+    )
 
-    # Ensure audio data is a NumPy array
-    audio = np.array(audio_data)
+    # Convert to decibel
+    spectrogram_decibel = librosa.power_to_db(spectrogram)
 
-    # Check if the audio length is sufficient for STFT
-    if len(audio) < FRAME_SIZE:
-        audio = np.pad(audio, (0, FRAME_SIZE - len(audio)), mode='constant')
+    # Open and configure plot
+    fig, ax = plt.subplots(figsize=figsize, dpi=100)
+    ax.set_position([0, 0, 1, 1])
+    ax.set_frame_on(False)
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    fig.patch.set_alpha(0)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    plt.ioff()
 
-    # Short-time Fourier transform to magnitude
-    stft = librosa.stft(audio, n_fft=FRAME_SIZE, hop_length=HOP_SIZE)
-    magnitude = np.abs(stft)
+    # Plot spectrogram
+    librosa.display.specshow(
+        spectrogram_decibel,
+        sr = sr,
+        hop_length = hop_length,
+        x_axis = "time",
+        y_axis = "mel",
+        fmin = fmin,
+        fmax = fmax,
+        vmin = -20,
+        vmax = 10,
+        cmap = 'magma'
+    )
 
-    # Convert amplitude to dB
-    db_scale = librosa.amplitude_to_db(magnitude, ref=np.max)
+    # Copy spectrogram graph to image, then delete graph
+    fig.canvas.draw()
+    image = Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
+    plt.close(fig)
 
-    # Resize
-    db_resized = resize(db_scale, TARGET_SHAPE, mode='constant', preserve_range=True)
+    # When True: Image of spectrogram is saved to cwd
+    if save:
+        image.save("spectrogram.png")
 
-    # Normalize
-    db_min, db_max = db_resized.min(), db_resized.max()
-    db_resized = (db_resized - db_min) / (db_max - db_min + 1e-8)
+    # When False: Return numpy array for CNN input
+    if not show:
+        # Resize image to CNN input layer
+        image = image.resize(target_shape)
 
-    # Convert to float32 for memory saving
-    db_resized = db_resized.astype(np.float32)
+        # Convert to array
+        image_array = np.array(image)
 
-    # Expand to 3 channels for input
-    db_resized = np.stack([db_resized, db_resized, db_resized], axis=-1)
+        # Normalize [0, 1]
+        image_array = image_array.astype(np.float32) / 255.0
 
-    return db_resized
+        return image_array
+
+    # When True: Print spectrogram to console
+    else:
+        image.show()
 
 
 def model_prediction(stop_event, spectrogram_queue):
@@ -75,14 +105,10 @@ def model_prediction(stop_event, spectrogram_queue):
             audio_segment = spectrogram_queue.get()
 
             # Generate spectrogram
-            spectrogram = generate_spectrogram_array(audio_segment)
-
-            # Prepare batch for prediction
-            spectrogram = np.squeeze(spectrogram)  # Remove any unintended extra dimensions
-            spectrogram_batch = np.expand_dims(spectrogram, axis=0)
+            spectrogram = mel_spectrogram_generator(audio_segment)
 
             # Make prediction
-            prediction = model.predict(spectrogram_batch, verbose=0)
+            prediction = model.predict(spectrogram, verbose=0)
             prediction_decimal.value = prediction[0][0]
 
             # Gunshot if confidence is > ##%
