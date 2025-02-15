@@ -1,9 +1,14 @@
+import os
 import threading
 from audio_input import volume_queue, spectrogram_queue, record_audio
 from volume_bar_renderer import volume_animation_bar
 from model_utils import prediction_decimal, samples_sniffed, model_prediction, gunshots_detected
 
 if __name__ == "__main__":
+
+    # Shut up warning
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
     # Stop event to kill executions across threads
     stop_event = threading.Event()
 

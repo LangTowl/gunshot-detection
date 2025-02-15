@@ -16,11 +16,15 @@ gunshots_detected = Value('i', 0)
 
 # Used directories
 detections_directory = 'data/detections'
-model_path = 'models/trained_model_3_Jan_29_2025.h5'
+model_path = 'models/trained_model_4_Feb_11_2025.h5'
 
 SAMPLE_RATE = 16000
 
 def mel_spectrogram_generator(data, sr = 16000, duration = 2.0, n_fft = 2560, hop_length = 128, n_mels = 512, fmin = 4000, fmax = 8000, power = 2.0, figsize = (5,5), target_shape = (256, 256), show = False, save = False):
+    # Compress into single mono channel
+    if data.ndim > 1:
+        data = data.squeeze()
+
     # Compute spectrogram
     spectrogram = librosa.feature.melspectrogram(
         y = data,
@@ -109,7 +113,7 @@ def model_prediction(stop_event, spectrogram_queue):
             spectrogram = mel_spectrogram_generator(audio_segment)
 
             # Make prediction
-            prediction = model.predict(spectrogram, verbose=0)
+            prediction = model.predict(np.expand_dims(spectrogram, axis=0), verbose=0)
             prediction_decimal.value = prediction[0][0]
 
             # Gunshot if confidence is > ##%
