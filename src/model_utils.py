@@ -1,13 +1,10 @@
-import os
 import librosa
-import numpy as np
 from PIL import Image
 import librosa.display
-from keras import models
+from ultralytics import YOLO
 from datetime import datetime
 import matplotlib.pyplot as plt
 from multiprocessing import Value
-from scipy.io.wavfile import write
 
 # Variables to be shared across threads
 prediction_decimal = Value('d', 0.0)
@@ -16,7 +13,6 @@ gunshots_detected = Value('i', 0)
 
 # Used directories
 detections_directory = 'data/detections'
-model_path = 'models/trained_model_4_Feb_11_2025.h5'
 
 SAMPLE_RATE = 16000
 
@@ -70,37 +66,17 @@ def mel_spectrogram_generator(data, sr = 16000, duration = 2.0, n_fft = 2560, ho
     image = Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
     plt.close(fig)
 
-    # When True: Image of spectrogram is saved to cwd
-    if save:
-        image.save("spectrogram.png")
-
-    # When False: Return numpy array for CNN input
-    if not show:
-        # Resize image to CNN input layer
-        image = image.resize(target_shape)
-
-        # Convert to array
-        image_array = np.array(image)
-
-        # Normalize [0, 1]
-        image_array = image_array.astype(np.float32) / 255.0
-
-        return image_array
-
-    # When True: Print spectrogram to console
-    else:
-        image.show()
-
+    return image
 
 def model_prediction(stop_event, spectrogram_queue):
     global prediction_decimal
     global gunshots_detected
 
-    # Load trained model
-    model = models.load_model(model_path, compile=False)
-
     # Time of last recorded gunshot
     time_of_last_gunshot = datetime.now()
+
+    # Load model
+    model = YOLO("/Users/langtowl/PycharmProjects/gunshot-detection/src/best.pt")
 
     # Code to run while thread is alive
     while not stop_event.is_set():
@@ -113,24 +89,26 @@ def model_prediction(stop_event, spectrogram_queue):
             spectrogram = mel_spectrogram_generator(audio_segment)
 
             # Make prediction
-            prediction = model.predict(np.expand_dims(spectrogram, axis=0), verbose=0)
-            prediction_decimal.value = prediction[0][0]
+            prediction = model.predict(spectrogram, verbose = False)
 
-            # Gunshot if confidence is > ##%
-            if prediction_decimal.value > 0.95:
+            # Extract bounding boxes
+            bounding_boxes = prediction[0].boxes.xyxy.cpu().numpy()
+
+            if len(bounding_boxes) > 0:
                 # Determine time since last detection
                 now = datetime.now()
                 time_delta = (now - time_of_last_gunshot).total_seconds()
 
                 if time_delta > 1.0:
-
                     gunshots_detected.value += 1
                     time_of_last_gunshot = now
 
-                    # Save file to disk if gunshot is detected
-                    formatted_date_time = now.strftime("%m_%d_%H_%M")
+
+            samples_sniffed.value += 1
+
+"""
+formatted_date_time = now.strftime("%m_%d_%H_%M")
                     filename = os.path.join(detections_directory, f"gs_{samples_sniffed.value}_conf_{prediction_decimal.value:.3f}_date_{formatted_date_time}.wav")
                     audio_segment_int16 = (audio_segment * 32767).astype(np.int16)
                     write(filename, SAMPLE_RATE, audio_segment_int16)
-
-            samples_sniffed.value += 1
+"""
