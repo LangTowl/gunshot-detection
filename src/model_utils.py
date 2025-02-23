@@ -1,4 +1,5 @@
 import librosa
+import torch
 from PIL import Image
 import librosa.display
 from ultralytics import YOLO
@@ -68,7 +69,7 @@ def mel_spectrogram_generator(data, sr = 16000, duration = 2.0, n_fft = 2560, ho
 
     return image
 
-def model_prediction(stop_event, spectrogram_queue):
+def model_prediction(stop_event, spectrogram_queue, confidence_threshold = 0.6):
     global prediction_decimal
     global gunshots_detected
 
@@ -76,7 +77,7 @@ def model_prediction(stop_event, spectrogram_queue):
     time_of_last_gunshot = datetime.now()
 
     # Load model
-    model = YOLO("/Users/langtowl/PycharmProjects/gunshot-detection/src/best.pt")
+    model = YOLO("/Users/langtowl/PycharmProjects/gunshot-detection/notebooks/runs/detect/train/weights/best.pt", verbose = False)
 
     # Code to run while thread is alive
     while not stop_event.is_set():
@@ -91,17 +92,17 @@ def model_prediction(stop_event, spectrogram_queue):
             # Make prediction
             prediction = model.predict(spectrogram, verbose = False)
 
-            # Extract bounding boxes
-            bounding_boxes = prediction[0].boxes.xyxy.cpu().numpy()
+            # Check to see if there were any detections
+            if prediction[0].boxes.shape[0] > 0:
+                # Check to see if any of the detections exceed our threshold
+                if (prediction[0].boxes.conf > confidence_threshold).any():
+                    # Determine time since last detection
+                    now = datetime.now()
+                    time_delta = (now - time_of_last_gunshot).total_seconds()
 
-            if len(bounding_boxes) > 0:
-                # Determine time since last detection
-                now = datetime.now()
-                time_delta = (now - time_of_last_gunshot).total_seconds()
-
-                if time_delta > 1.0:
-                    gunshots_detected.value += 1
-                    time_of_last_gunshot = now
+                    if time_delta > 1.0:
+                        gunshots_detected.value += 1
+                        time_of_last_gunshot = now
 
 
             samples_sniffed.value += 1
