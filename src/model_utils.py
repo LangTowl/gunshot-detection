@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from multiprocessing import Value
 
 # Variables to be shared across threads
-prediction_decimal = Value('d', 0.0)
+prediction_decimal = Value('f', 0.0)
 samples_sniffed = Value('i', 0)
 gunshots_detected = Value('i', 0)
 
@@ -17,7 +17,7 @@ detections_directory = 'data/detections'
 
 SAMPLE_RATE = 16000
 
-def mel_spectrogram_generator(data, sr = 16000, duration = 2.0, n_fft = 2560, hop_length = 128, n_mels = 512, fmin = 4000, fmax = 8000, power = 2.0, figsize = (5,5), target_shape = (256, 256), show = False, save = False):
+def mel_spectrogram_generator(data, sr = 16000, n_fft = 2560, hop_length = 128, n_mels = 512, fmin = 4000, fmax = 8000, power = 2.0, figsize = (5,5)):
     # Compress into single mono channel
     if data.ndim > 1:
         data = data.squeeze()
@@ -69,7 +69,7 @@ def mel_spectrogram_generator(data, sr = 16000, duration = 2.0, n_fft = 2560, ho
 
     return image
 
-def model_prediction(stop_event, spectrogram_queue, confidence_threshold = 0.6):
+def model_prediction(stop_event, spectrogram_queue, confidence_threshold = 0.80):
     global prediction_decimal
     global gunshots_detected
 
@@ -94,6 +94,10 @@ def model_prediction(stop_event, spectrogram_queue, confidence_threshold = 0.6):
 
             # Check to see if there were any detections
             if prediction[0].boxes.shape[0] > 0:
+
+                # Update value of prediction
+                prediction_decimal.value = float(prediction[0].boxes.conf.max().item())
+
                 # Check to see if any of the detections exceed our threshold
                 if (prediction[0].boxes.conf > confidence_threshold).any():
                     # Determine time since last detection
@@ -106,10 +110,3 @@ def model_prediction(stop_event, spectrogram_queue, confidence_threshold = 0.6):
 
 
             samples_sniffed.value += 1
-
-"""
-formatted_date_time = now.strftime("%m_%d_%H_%M")
-                    filename = os.path.join(detections_directory, f"gs_{samples_sniffed.value}_conf_{prediction_decimal.value:.3f}_date_{formatted_date_time}.wav")
-                    audio_segment_int16 = (audio_segment * 32767).astype(np.int16)
-                    write(filename, SAMPLE_RATE, audio_segment_int16)
-"""
