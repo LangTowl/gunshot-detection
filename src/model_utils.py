@@ -77,7 +77,7 @@ def model_prediction(stop_event, spectrogram_queue, confidence_threshold = 0.80)
     time_of_last_gunshot = datetime.now()
 
     # Load model
-    model = YOLO("/Users/langtowl/PycharmProjects/gunshot-detection/notebooks/runs/detect/train/weights/best.pt", verbose = False)
+    model = YOLO("/Users/langtowl/PycharmProjects/gunshot-detection/model/best.pt", verbose = False)
 
     # Code to run while thread is alive
     while not stop_event.is_set():
