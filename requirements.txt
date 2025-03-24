@@ -1,4 +1,4 @@
-numpy~=2.0.0
+numpy~=1.26.4
 sounddevice~=0.5.1
 librosa~=0.10.2.post1
 soundfile~=0.12.1
@@ -6,6 +6,8 @@ matplotlib~=3.9.3
 tensorflow~=2.18.0
 keras~=3.8.0
 scikit-learn~=1.6.0
-pillow~=11.0.0
+pillow~=11.1.0
 scipy~=1.14.1
 scikit-image~=0.25.0
+torch~=2.6.0
+ultralytics~=8.3.70
