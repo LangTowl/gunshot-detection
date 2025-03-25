@@ -1,5 +1,4 @@
 import librosa
-import torch
 from PIL import Image
 import librosa.display
 from ultralytics import YOLO

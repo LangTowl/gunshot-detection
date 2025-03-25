@@ -1,7 +1,6 @@
 import numpy as np
 from queue import Queue
 import sounddevice as sd
-from multiprocessing import Value
 
 volume_queue = Queue()          # Queue is accessed by volume rendered
 spectrogram_queue = Queue()     # Queue is used to generate spectrogram
