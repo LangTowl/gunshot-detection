@@ -1,10 +1,13 @@
 import librosa
+import matplotlib
 from PIL import Image
 import librosa.display
 from ultralytics import YOLO
 from datetime import datetime
 import matplotlib.pyplot as plt
 from multiprocessing import Value
+
+matplotlib.use('agg')
 
 # Variables to be shared across threads
 prediction_decimal = Value('f', 0.0)
