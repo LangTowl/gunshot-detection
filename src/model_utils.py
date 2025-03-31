@@ -75,10 +75,13 @@ def mel_spectrogram_generator(data, sr = 16000, n_fft = 2560, hop_length = 128, 
 
     return image
 
-def model_prediction(stop_event, spectrogram_queue, confidence_threshold = 0.20, volume_threshold = 3.0):
+def model_prediction(stop_event, spectrogram_queue, confidence_threshold = 0.75, volume_threshold = 3.0):
     global prediction_decimal
     global gunshots_detected
     global average_volume
+    global last_volume
+    global model_inferences
+    global samples_sniffed
 
     # Time of last recorded gunshot
     time_of_last_gunshot = datetime.now()
