@@ -14,6 +14,7 @@ matplotlib.use('agg')
 prediction_decimal = Value('f', 0.0)
 samples_sniffed = Value('i', 0)
 gunshots_detected = Value('i', 0)
+model_inferences = Value('i', 0)
 average_volume = Value('f', 0.0)
 last_volume = Value('f', 0.0)
 
@@ -94,18 +95,19 @@ def model_prediction(stop_event, spectrogram_queue, confidence_threshold = 0.20,
             samples_sniffed.value += 1
 
             # Update current and average volume
-            current_mean = np.abs(np.max(audio_segment, axis = 0))
-            last_volume.value = current_mean
-            average_volume.value = (average_volume.value + (current_mean - average_volume.value) / samples_sniffed.value)
+            current_volume = np.abs(np.max(audio_segment, axis = 0))
+            last_volume.value = current_volume
+            average_volume.value = (average_volume.value + (current_volume - average_volume.value) / samples_sniffed.value)
 
             # Determine if volume threshold met
-            if current_mean >= average_volume.value * volume_threshold:
+            if current_volume >= average_volume.value * volume_threshold:
 
                 # Generate spectrogram
                 spectrogram = mel_spectrogram_generator(audio_segment)
 
                 # Make prediction
                 prediction = model.predict(spectrogram, verbose = False)
+                model_inferences.value += 1
 
                 # Check to see if there were any detections
                 if prediction[0].boxes.shape[0] > 0:
