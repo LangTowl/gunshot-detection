@@ -1,5 +1,6 @@
 import librosa
 import matplotlib
+import numpy as np
 from PIL import Image
 import librosa.display
 from ultralytics import YOLO
@@ -13,6 +14,8 @@ matplotlib.use('agg')
 prediction_decimal = Value('f', 0.0)
 samples_sniffed = Value('i', 0)
 gunshots_detected = Value('i', 0)
+average_volume = Value('f', 0.0)
+last_volume = Value('f', 0.0)
 
 # Used directories
 detections_directory = 'data/detections'
@@ -71,9 +74,10 @@ def mel_spectrogram_generator(data, sr = 16000, n_fft = 2560, hop_length = 128, 
 
     return image
 
-def model_prediction(stop_event, spectrogram_queue, confidence_threshold = 0.80):
+def model_prediction(stop_event, spectrogram_queue, confidence_threshold = 0.20, volume_threshold = 3.0):
     global prediction_decimal
     global gunshots_detected
+    global average_volume
 
     # Time of last recorded gunshot
     time_of_last_gunshot = datetime.now()
@@ -87,28 +91,35 @@ def model_prediction(stop_event, spectrogram_queue, confidence_threshold = 0.80)
         while not spectrogram_queue.empty():
             # Load next segment
             audio_segment = spectrogram_queue.get()
-
-            # Generate spectrogram
-            spectrogram = mel_spectrogram_generator(audio_segment)
-
-            # Make prediction
-            prediction = model.predict(spectrogram, verbose = False)
-
-            # Check to see if there were any detections
-            if prediction[0].boxes.shape[0] > 0:
-
-                # Update value of prediction
-                prediction_decimal.value = float(prediction[0].boxes.conf.max().item())
-
-                # Check to see if any of the detections exceed our threshold
-                if (prediction[0].boxes.conf > confidence_threshold).any():
-                    # Determine time since last detection
-                    now = datetime.now()
-                    time_delta = (now - time_of_last_gunshot).total_seconds()
-
-                    if time_delta > 1.0:
-                        gunshots_detected.value += 1
-                        time_of_last_gunshot = now
-
-
             samples_sniffed.value += 1
+
+            # Update current and average volume
+            current_mean = np.abs(np.max(audio_segment, axis = 0))
+            last_volume.value = current_mean
+            average_volume.value = (average_volume.value + (current_mean - average_volume.value) / samples_sniffed.value)
+
+            # Determine if volume threshold met
+            if current_mean >= average_volume.value * volume_threshold:
+
+                # Generate spectrogram
+                spectrogram = mel_spectrogram_generator(audio_segment)
+
+                # Make prediction
+                prediction = model.predict(spectrogram, verbose = False)
+
+                # Check to see if there were any detections
+                if prediction[0].boxes.shape[0] > 0:
+
+                    # Update value of prediction
+                    prediction_decimal.value = float(prediction[0].boxes.conf.max().item())
+
+                    # Check to see if any of the detections exceed our threshold
+                    if (prediction[0].boxes.conf > confidence_threshold).any():
+                        # Determine time since last detection
+                        now = datetime.now()
+                        time_delta = (now - time_of_last_gunshot).total_seconds()
+
+                        # Ignore redundant detections that occur within last 2 seconds
+                        if time_delta > 2.0:
+                            gunshots_detected.value += 1
+                            time_of_last_gunshot = now

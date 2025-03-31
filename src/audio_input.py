@@ -5,7 +5,7 @@ import sounddevice as sd
 volume_queue = Queue()          # Queue is accessed by volume rendered
 spectrogram_queue = Queue()     # Queue is used to generate spectrogram
 
-def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channels = 1, downscale_factor = 0.45):
+def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channels = 1, downscale_factor = 1.00):
 
     # Determine sample
     num_samples = int(sample_rate * chunk_duration)
@@ -20,7 +20,7 @@ def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channel
 
     # Setup offset buffer
     silent_chunks = int(sample_rate * 1.0 / num_samples)
-    silent_audio = np.zeros((num_samples, channels), dtype=np.float32)
+    silent_audio = np.zeros((num_samples, channels), dtype = np.float32)
     audio_buffer_1 = [silent_audio] * silent_chunks
 
 
@@ -43,13 +43,13 @@ def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channel
             # Append audio buffer to spectrogram queue once it accumulates 2 seconds of audio
             audio_buffer_1.append(audio_segment)
             if len(audio_buffer_1) == number_of_segments:
-                full_segment_1 = np.concatenate(audio_buffer_1[:number_of_segments], axis=0)
+                full_segment_1 = np.concatenate(audio_buffer_1[:number_of_segments], axis = 0)
                 spectrogram_queue.put(full_segment_1)
                 audio_buffer_1 = audio_buffer_1[number_of_segments:]
 
             # Append audio buffer to spectrogram queue once it accumulates 2 seconds of audio
             audio_buffer_2.append(audio_segment)
             if len(audio_buffer_2) == number_of_segments:
-                full_segment_2 = np.concatenate(audio_buffer_2[:number_of_segments], axis=0)
+                full_segment_2 = np.concatenate(audio_buffer_2[:number_of_segments], axis = 0)
                 spectrogram_queue.put(full_segment_2)
                 audio_buffer_2 = audio_buffer_2[number_of_segments:]
