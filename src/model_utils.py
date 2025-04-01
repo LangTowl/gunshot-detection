@@ -18,11 +18,6 @@ model_inferences = Value('i', 0)
 average_volume = Value('f', 0.0)
 last_volume = Value('f', 0.0)
 
-# Used directories
-detections_directory = 'data/detections'
-
-SAMPLE_RATE = 16000
-
 def mel_spectrogram_generator(data, sr = 16000, n_fft = 2560, hop_length = 128, n_mels = 512, fmin = 4000, fmax = 8000, power = 2.0, figsize = (5,5)):
     # Compress into single mono channel
     if data.ndim > 1:
