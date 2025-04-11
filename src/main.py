@@ -23,8 +23,8 @@ if __name__ == "__main__":
     # animation_thread.start()
 
     # Initialize thread for spectrogram generation and model predictions
-    prediction_thread = threading.Thread(target = model_prediction, args = (stop_event, spectrogram_queue))
-    prediction_thread.start()
+    # prediction_thread = threading.Thread(target = model_prediction, args = (stop_event, spectrogram_queue))
+    # prediction_thread.start()
 
     # Initialize and run Tkinter
     root = tk.Tk()
@@ -38,5 +38,5 @@ if __name__ == "__main__":
     finally:
         # animation_thread.join()
         audio_thread.join()
-        prediction_thread.join()
+        # prediction_thread.join()
         print("Exiting program...")
