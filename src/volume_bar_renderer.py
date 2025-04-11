@@ -2,6 +2,9 @@ import sys
 from queue import Empty
 
 def volume_animation_bar(stop_event, volume_queue, prediction, samples_sniffed, gunshots_detected, average_volume, last_volume, model_inferences, chunk_duration = 0.01, max_length = 40):
+    # Debug
+    print("Initializing volume bar renderer...\n")
+
     # While thread is active
     while not stop_event.is_set():
         try:
