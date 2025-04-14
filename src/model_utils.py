@@ -60,7 +60,8 @@ def mel_spectrogram_generator(data, sr = 16000, n_fft = 2560, hop_length = 128, 
         fmax = fmax,
         vmin = -20,
         vmax = 10,
-        cmap = 'magma'
+        cmap = 'magma',
+        ax = ax
     )
 
     # Copy spectrogram graph to image, then delete graph
@@ -99,7 +100,6 @@ def model_prediction(stop_event, spectrogram_queue, confidence_threshold = 0.75,
 
             # Determine if volume threshold met
             if current_volume >= average_volume.value * volume_threshold:
-
                 # Generate spectrogram
                 spectrogram = mel_spectrogram_generator(audio_segment)
 
@@ -109,7 +109,6 @@ def model_prediction(stop_event, spectrogram_queue, confidence_threshold = 0.75,
 
                 # Check to see if there were any detections
                 if prediction[0].boxes.shape[0] > 0:
-
                     # Update value of prediction
                     prediction_decimal.value = float(prediction[0].boxes.conf.max().item())
 

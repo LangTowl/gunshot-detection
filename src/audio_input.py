@@ -4,6 +4,7 @@ import sounddevice as sd
 
 volume_queue = Queue()          # Queue is accessed by volume rendered
 spectrogram_queue = Queue()     # Queue is used to generate spectrogram
+renderer_queue = Queue()        # Queue is use to render spectrogram
 
 def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channels = 1, downscale_factor = 0.50):
     # Debug
@@ -47,6 +48,7 @@ def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channel
             if len(audio_buffer_1) == number_of_segments:
                 full_segment_1 = np.concatenate(audio_buffer_1[:number_of_segments], axis = 0)
                 spectrogram_queue.put(full_segment_1)
+                renderer_queue.put(full_segment_1)
                 audio_buffer_1 = audio_buffer_1[number_of_segments:]
 
             # Append audio buffer to spectrogram queue once it accumulates 2 seconds of audio
@@ -54,4 +56,5 @@ def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channel
             if len(audio_buffer_2) == number_of_segments:
                 full_segment_2 = np.concatenate(audio_buffer_2[:number_of_segments], axis = 0)
                 spectrogram_queue.put(full_segment_2)
+                renderer_queue.put(full_segment_2)
                 audio_buffer_2 = audio_buffer_2[number_of_segments:]
