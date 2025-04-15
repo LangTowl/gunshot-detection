@@ -6,7 +6,7 @@ volume_queue = Queue()          # Queue is accessed by volume rendered
 spectrogram_queue = Queue()     # Queue is used to generate spectrogram
 renderer_queue = Queue()        # Queue is use to render spectrogram
 
-def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channels = 1, downscale_factor = 0.50):
+def record_audio(stop_event, chunk_duration = 0.01, sample_rate = 16000, channels = 1, downscale_factor = 0.25):
     # Debug
     print("Initializing audio input pipeline...\n")
 
