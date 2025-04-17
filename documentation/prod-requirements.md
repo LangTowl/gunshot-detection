@@ -1,5 +1,4 @@
 # Production Requirements
----
 `numpy~=1.24.4` 
 - Used for basic multi-dimensional array manipulation and computation.
 

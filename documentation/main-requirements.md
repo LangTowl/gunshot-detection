@@ -1,5 +1,4 @@
 # Development / Training Requirements
----
 `numpy~=1.26.4`
 - Used for basic multi-dimensional array manipulation and computation.
 
