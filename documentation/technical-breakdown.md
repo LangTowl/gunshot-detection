@@ -1,5 +1,6 @@
 # Technical Breakdown
-![[Pasted image 20250415162555.png]]
+<img width="1274" alt="image" src="https://github.com/user-attachments/assets/41f71b02-91c5-4d32-8051-b3ae197f2614" />
+
 
 ## System Input
 The Gunshot Detection System (GDS) begins with collecting two overlapping audio queues. The second queue has a one second offset from the first, creating a sliding window effect. Each sample is standardized to seconds long with a sampler rate of $16,000 Hz$. There is an optional parameter in the `audio_input.py` which can be used to add a downscaling factor to reduce the volume of the incoming audio. 
