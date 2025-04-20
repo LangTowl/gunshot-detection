@@ -7,9 +7,9 @@ The Gunshot Detection System (GDS) begins with collecting two overlapping audio 
 
 ## Pre-Processing
 Once the incoming audio has been standardized, it is passed through a Short Time Fourier Transform. 
-$$
-S(m,k)=\sum_{n=0}^{N-1}x(n+mH)\cdot w(n)\cdot e^{-i2\pi n\frac{k}{N}}
-$$
+
+$$S(m,k)=\sum_{n=0}^{N-1}x(n+mH)\cdot w(n)\cdot e^{-i2\pi n\frac{k}{N}}$$
+
 - $k=$ proxy for frequency *(also measured in # of frequency bins)*
 - $m=$ proxy for time *(also measures frame number or # of frames)*
 - $N=$ all samples contained in frame size, otherwise the frame size
